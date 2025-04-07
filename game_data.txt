@@ -14,3 +14,7 @@ Player: S
 Score: 60
 Date and Time: 2025-04-08 01:01:11
 
+Player: Play
+Score: 240
+Date and Time: 2025-04-08 01:19:17
+

@@ -1,3 +1,4 @@
+// System includes and dependencies
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -12,78 +13,87 @@
     #include <fcntl.h>
     #define Sleep(x) usleep((x) * 1000)
 
+    // Function: kbhit()
+    // Purpose: Non-blocking check for keyboard input on Unix systems
+    // Returns: 1 if a key is pressed, 0 otherwise
     int kbhit(void) {
-    struct termios oldt, newt;
-    int ch;
-    int oldf;
+        struct termios oldt, newt;
+        int ch;
+        int oldf;
 
-    tcgetattr(STDIN_FILENO, &oldt);             // save old settings
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);           // disable buffering
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);    // apply new settings
-    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+        tcgetattr(STDIN_FILENO, &oldt);             // save old settings
+        newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO);           // disable buffering
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);    // apply new settings
+        oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+        fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
 
-    ch = getchar();                             // read input
+        ch = getchar();                             // read input
 
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);    // restore settings
-    fcntl(STDIN_FILENO, F_SETFL, oldf);
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);    // restore settings
+        fcntl(STDIN_FILENO, F_SETFL, oldf);
 
-    if (ch != EOF) {
-        ungetc(ch, stdin);                      // put character back
-        return 1;
+        if (ch != EOF) {
+            ungetc(ch, stdin);                      // put character back
+            return 1;
+        }
+
+        return 0;
     }
 
-    return 0;
-}
+    // Function: getch()
+    // Purpose: Get a single character from keyboard without echo
+    int getch(void) {
+        struct termios oldt, newt;
+        int ch;
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO);           // disable canonical mode and echo
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+        ch = getchar();                             // read char
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);    // restore terminal
+        return ch;
+    }
 
-int getch(void) {
-    struct termios oldt, newt;
-    int ch;
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);           // disable canonical mode and echo
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    ch = getchar();                             // read char
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);    // restore terminal
-    return ch;
-}
+    // Function: wait()
+    // Purpose: Wait for user input while maintaining terminal settings
+    void wait(void){
+        struct termios oldt, newt;
+        fflush(stdout);  // Make sure the message is printed immediately
 
-void wait(void){
-    struct termios oldt, newt;
-    fflush(stdout);  // Make sure the message is printed immediately
+        // Get current terminal settings
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
 
-    // Get current terminal settings
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
+        // Disable canonical mode and echo
+        newt.c_lflag &= ~(ICANON | ECHO);
 
-    // Disable canonical mode and echo
-    newt.c_lflag &= ~(ICANON | ECHO);
+        // Apply new settings
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
-    // Apply new settings
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+        // Wait for any key
+        getchar();
 
-    // Wait for any key
-    getchar();
+        // Restore original terminal settings
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 
-    // Restore original terminal settings
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-
-    printf("\n");
-}
+        printf("\n");
+    }
 #endif
 
-#define WIDTH 50
-#define HEIGHT 20
-#define GAME_DATA_FILE "game_data.txt"
-#define HIGH_SCORE_FILE "highscore.txt"
-#define FOOD_SOUND "assets/food.wav"
-#define GAME_SOUND "assets/select.wav"
-#define GAME_OVER_SOUND "assets/gameover.wav"
-#define POISON_SOUND "assets/poison.wav"
-#define GOLDENFOOD_SOUND "assets/bonus.wav"
-#define PAUSE_SOUND "assets/Pause.wav"
+// Game constants
+#define WIDTH 50          // Game board width
+#define HEIGHT 20         // Game board height
+#define GAME_DATA_FILE "game_data.txt" // File path for game session data
+#define HIGH_SCORE_FILE "highscore.txt" // File path for high score data
+#define FOOD_SOUND "assets/food.wav" // Sound file for food consumption
+#define GAME_SOUND "assets/select.wav" // Sound file for game start
+#define GAME_OVER_SOUND "assets/gameover.wav" // Sound file for game over
+#define POISON_SOUND "assets/poison.wav" // Sound file for poison consumption
+#define GOLDENFOOD_SOUND "assets/bonus.wav" // Sound file for golden food consumption
+#define PAUSE_SOUND "assets/Pause.wav" // Sound file for game pause
 
+// ANSI color codes for terminal output
 #define GREEN "\033[1;32m"
 #define RED "\033[1;31m"
 #define YELLOW "\033[1;33m"
@@ -92,24 +102,33 @@ void wait(void){
 #define MAGENTA "\033[1;35m"
 #define RESET "\033[0m"
 
-#define MAX_OBSTACLES 10
+#define MAX_OBSTACLES 10  // Maximum number of obstacles in the game
 
+// Snake body segment structure
 typedef struct Node {
-    int x, y;
-    struct Node* next;
+    int x, y;            // Position coordinates
+    struct Node* next;   // Pointer to next body segment
 } Node;
 
-Node *head = NULL, *tail = NULL;
-int food = 0, foodX, foodY, poisonX = -1, poisonY = -1, goldenFoodX = -1, goldenFoodY = -1;
-int score = 0, highScore = 0, gameOver = 0, paused = 0, foodCounter = 0;
-char direction = 'R';
-char player[100];
-int level = 1;
+// Global game state variables
+Node *head = NULL, *tail = NULL;    // Snake head and tail pointers
+int food = 0, foodX, foodY;         // Food status and position
+int poisonX = -1, poisonY = -1;     // Poison position (-1 means not present)
+int goldenFoodX = -1, goldenFoodY = -1;  // Golden food position
+int score = 0, highScore = 0;       // Score tracking
+int gameOver = 0, paused = 0;       // Game state flags
+int foodCounter = 0;                // Counter for food generation
+char direction = 'R';               // Current snake direction (R/L/U/D)
+char player[100];                   // Player name storage
+int level = 1;                      // Current game level
 
-int obstacleCount = 0;
-int obstacles[MAX_OBSTACLES][2];
+// Obstacle tracking
+int obstacleCount = 0;              // Number of active obstacles
+int obstacles[MAX_OBSTACLES][2];     // Obstacle positions array
 
+// Utility Functions
 void clearScreen() {
+    // Platform-specific screen clearing
 #ifdef _WIN32
     system("cls");
 #else
@@ -117,6 +136,7 @@ void clearScreen() {
 #endif
 }
 
+// Console cursor control functions
 void hideCursor() {
     #ifdef _WIN32
         HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -128,8 +148,8 @@ void hideCursor() {
         printf("\e[?25l");
         fflush(stdout);
     #endif
-    }
-    
+}
+
 void showCursor() {
     #ifdef _WIN32
         HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -142,9 +162,10 @@ void showCursor() {
         fflush(stdout);
     #endif
 }
-    
 
+// Game UI Functions
 void loader(const char* msg) {
+    // Displays loading animation with message
     clearScreen();
     printf(MAGENTA "%s\n",msg);
     for (int i = 0; i < 3; i++) {
@@ -158,6 +179,7 @@ void loader(const char* msg) {
 }
 
 void showMenu() {
+    // Displays main game menu
     clearScreen();
     printf(GREEN "Snake Game Menu\n" RESET);
     printf(YELLOW "1. Beginner\n");
@@ -169,7 +191,9 @@ void showMenu() {
     printf(MAGENTA "\nChoose an option (1-6): " RESET);
 }
 
+// Sound Functions
 void playSound(const char *filename) {
+    // Cross-platform sound playing implementation
     char command[200];
 #ifdef _WIN32
     sprintf(command, "powershell -c \"(New-Object Media.SoundPlayer '%s').PlaySync();\"", filename);
@@ -181,7 +205,10 @@ void playSound(const char *filename) {
     system(command);
 }
 
+// Game Logic Functions
 void generateFood() {
+    // Generates food at random positions
+    // Also handles poison and golden food generation
     foodX = rand() % (WIDTH - 2) + 1;
     foodY = rand() % (HEIGHT - 2) + 1;
     foodCounter++;
@@ -194,6 +221,7 @@ void generateFood() {
 }
 
 void generateObstacles() {
+    // Creates obstacles based on current level
     obstacleCount = (level == 2) ? 3 : (level == 3) ? 6 : 0;
     for (int i = 0; i < obstacleCount; i++) {
         obstacles[i][0] = rand() % (WIDTH - 2) + 1;
@@ -202,6 +230,7 @@ void generateObstacles() {
 }
 
 void initSnake() {
+    // Initializes snake at starting position
     head = malloc(sizeof(Node));
     head->x = WIDTH / 2;
     head->y = HEIGHT / 2;
@@ -209,7 +238,9 @@ void initSnake() {
     tail = head;
 }
 
+// File Handling Functions
 void loadHighScore() {
+    // Loads high score from file
     FILE *file = fopen(HIGH_SCORE_FILE, "r");
     if (file) {
         fscanf(file, "%d", &highScore);
@@ -218,6 +249,7 @@ void loadHighScore() {
 }
 
 void saveHighScore() {
+    // Saves new high score if achieved
     if (score > highScore) {
         FILE *file = fopen(HIGH_SCORE_FILE, "w");
         fprintf(file, "%d", score);
@@ -226,6 +258,7 @@ void saveHighScore() {
 }
 
 void saveGameData() {
+    // Records game session data with timestamp
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
     char timeStr[100];
@@ -236,7 +269,9 @@ void saveGameData() {
     fclose(file);
 }
 
+// Game State Display Functions
 void showHighScore() {
+    // Displays high score
     clearScreen();
     loadHighScore();
     printf(GREEN "\nHigh Score: %d\n" RESET, highScore);
@@ -250,6 +285,7 @@ void showHighScore() {
 }
 
 void showPastScores() {
+    // Displays past scores from file
     clearScreen();
     FILE *file = fopen(GAME_DATA_FILE, "r");
     if (file) {
@@ -269,15 +305,15 @@ void showPastScores() {
 }
 
 void draw() {
+    // Renders game board and all elements
+    // Including snake, food, obstacles, and UI
     clearScreen();
-    // for (int i = 0; i < WIDTH + 2; i++) printf(BLUE "█" RESET);
     for (int i = 0; i < WIDTH + 2; i++) printf(BLUE "*" RESET);
     printf("\n");
 
     for (int i = 0; i < HEIGHT; i++) {
         for (int j = 0; j < WIDTH + 2; j++) {
             if (j == 0 || j == WIDTH + 1)
-                // printf(BLUE "█" RESET);
                 printf(BLUE "*" RESET);
             else if (paused && i == HEIGHT / 2 && j == (WIDTH - 6) / 2)
                 { printf(RED "Paused" RESET); j += 5; }
@@ -315,7 +351,6 @@ void draw() {
         printf("\n");
     }
 
-    // for (int i = 0; i < WIDTH + 2; i++) printf(BLUE "█" RESET);
     for (int i = 0; i < WIDTH + 2; i++) printf(BLUE "*" RESET);
     printf("\n" YELLOW "Score: %d | High Score: %d\n" RESET, score, highScore);
     if(paused)
@@ -326,6 +361,8 @@ void draw() {
 }
 
 void input() {
+    // Handles keyboard input for game control
+    // Supports both arrow keys and WASD
     if (kbhit()) {
         char key = getch();
         if (key == 27) { // ESC
@@ -349,6 +386,8 @@ void input() {
 }
 
 void moveSnake() {
+    // Updates snake position based on direction
+    // Handles collisions and food consumption
     if (paused) return;
 
     int newX = head->x, newY = head->y;
@@ -416,6 +455,7 @@ void moveSnake() {
 }
 
 void freeSnake() {
+    // Cleanup function to free snake memory
     while (head) {
         Node* temp = head;
         head = head->next;
@@ -424,6 +464,8 @@ void freeSnake() {
 }
 
 void gameLoop() {
+    // Main game loop handler
+    // Controls game flow and updates
     printf("Enter Player's Name: ");
     scanf(" %[^\n]", player);
     loader("Loading Game...");
@@ -454,6 +496,8 @@ void gameLoop() {
 }
 
 int main() {
+    // Program entry point
+    // Initializes game and handles menu selection
     srand(time(NULL));
 
     while (1) {
