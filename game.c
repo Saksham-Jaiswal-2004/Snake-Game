@@ -13,45 +13,45 @@
     #define Sleep(x) usleep((x) * 1000)
 
     int kbhit(void) {
-        struct termios oldt, newt;
-        int ch;
-        int oldf;
-        tcgetattr(STDIN_FILENO, &oldt);
-        newt = oldt;
-        newt.c_lflag &= ~(ICANON | ECHO);
-        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-        oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-        fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-        ch = getchar();
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-        fcntl(STDIN_FILENO, F_SETFL, oldf);
-        if (ch != EOF) {
-            ungetc(ch, stdin);
-            return 1;
-        }
-        return 0;
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+
+    tcgetattr(STDIN_FILENO, &oldt);             // save old settings
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);           // disable buffering
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);    // apply new settings
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    ch = getchar();                             // read input
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);    // restore settings
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    if (ch != EOF) {
+        ungetc(ch, stdin);                      // put character back
+        return 1;
     }
 
-    char getch() {
-        char buf = 0;
-        struct termios old = {0};
-        fflush(stdout);
-        if (tcgetattr(0, &old) < 0) perror("tcsetattr()");
-        old.c_lflag &= ~ICANON;
-        old.c_lflag &= ~ECHO;
-        old.c_cc[VMIN] = 1;
-        old.c_cc[VTIME] = 0;
-        if (tcsetattr(0, TCSANOW, &old) < 0) perror("tcsetattr ICANON");
-        if (read(0, &buf, 1) < 0) perror("read()");
-        old.c_lflag |= ICANON;
-        old.c_lflag |= ECHO;
-        if (tcsetattr(0, TCSADRAIN, &old) < 0) perror("tcsetattr ~ICANON");
-        return buf;
-    }
+    return 0;
+}
+
+int getch(void) {
+    struct termios oldt, newt;
+    int ch;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);           // disable canonical mode and echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    ch = getchar();                             // read char
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);    // restore terminal
+    return ch;
+}
 #endif
 
-#define WIDTH 30
-#define HEIGHT 20
+#define WIDTH 50
+#define HEIGHT 30
 #define GAME_DATA_FILE "game_data.txt"
 #define HIGH_SCORE_FILE "highscore.txt"
 #define FOOD_SOUND "assets/food.wav"
@@ -59,6 +59,7 @@
 #define GAME_OVER_SOUND "assets/gameover.wav"
 #define POISON_SOUND "assets/poison.wav"
 #define GOLDENFOOD_SOUND "assets/bonus.wav"
+#define PAUSE_SOUND "assets/Pause.wav"
 
 #define GREEN "\033[1;32m"
 #define RED "\033[1;31m"
@@ -271,12 +272,23 @@ void draw() {
 void input() {
     if (kbhit()) {
         char key = getch();
-        if ((key == 'w' || key == 65) && direction != 'D') direction = 'U';
-        else if ((key == 's' || key == 66) && direction != 'U') direction = 'D';
-        else if ((key == 'a' || key == 68) && direction != 'R') direction = 'L';
-        else if ((key == 'd' || key == 67) && direction != 'L') direction = 'R';
-        else if (key == 'x') gameOver = 1;
-        else if (key == 'p') paused = !paused;
+        if (key == 27) { // ESC
+            if (kbhit() && getch() == '[') {
+                char arrow = getch();
+                if (arrow == 'A' && direction != 'D') direction = 'U';  // Up
+                else if (arrow == 'B' && direction != 'U') direction = 'D';  // Down
+                else if (arrow == 'C' && direction != 'L') direction = 'R';  // Right
+                else if (arrow == 'D' && direction != 'R') direction = 'L';  // Left
+            }
+        } else {
+            // WASD fallback
+            if ((key == 'w' || key == 'W') && direction != 'D') direction = 'U';
+            else if ((key == 's' || key == 'S') && direction != 'U') direction = 'D';
+            else if ((key == 'a' || key == 'A') && direction != 'R') direction = 'L';
+            else if ((key == 'd' || key == 'D') && direction != 'L') direction = 'R';
+            else if (key == 'x' || key == 'X') gameOver = 1;
+            else if (key == 'p' || key == 'P') {paused = !paused; playSound(PAUSE_SOUND);}
+        }
     }
 }
 
