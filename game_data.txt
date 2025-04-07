@@ -50,3 +50,11 @@ Player: BOT12
 Score: 90
 Date and Time: 2025-04-07 18:20:31
 
+Player: BOT13
+Score: 40
+Date and Time: 2025-04-07 18:38:54
+
+Player: BOT14
+Score: 0
+Date and Time: 2025-04-07 18:42:11
+

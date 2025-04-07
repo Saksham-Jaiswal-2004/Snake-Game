@@ -335,6 +335,14 @@ void moveSnake() {
     }
 }
 
+void freeSnake() {
+    while (head) {
+        Node* temp = head;
+        head = head->next;
+        free(temp);
+    }
+}
+
 void gameLoop() {
     printf("Enter Player's Name: ");
     scanf(" %[^\n]", player);
@@ -358,6 +366,7 @@ void gameLoop() {
     saveHighScore();
     playSound(GAME_OVER_SOUND);
     printf(RED "\nGame Over! Your final score: %d\n" RESET, score);
+    freeSnake();
     printf("Press any key to return to menu...");
     getch();
 }
