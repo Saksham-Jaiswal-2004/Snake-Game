@@ -1,0 +1,52 @@
+*************************************
+************* Game Data *************
+*************************************
+
+Player: BOT1
+Score: 70
+Date and Time: 2025-04-07 17:35:49
+
+Player: BOT2
+Score: 60
+Date and Time: 2025-04-07 17:41:38
+
+Player: BOT3
+Score: 10
+Date and Time: 2025-04-07 17:46:47
+
+Player: BOT4
+Score: 10
+Date and Time: 2025-04-07 17:57:24
+
+Player: BOT5
+Score: 10
+Date and Time: 2025-04-07 18:01:37
+
+Player: BOT6
+Score: 20
+Date and Time: 2025-04-07 18:04:19
+
+Player: BOT7
+Score: 10
+Date and Time: 2025-04-07 18:07:38
+
+Player: BOT8
+Score: 80
+Date and Time: 2025-04-07 18:09:51
+
+Player: BOT9
+Score: 0
+Date and Time: 2025-04-07 18:10:23
+
+Player: BOT10
+Score: 60
+Date and Time: 2025-04-07 18:13:06
+
+Player: BOT11
+Score: 90
+Date and Time: 2025-04-07 18:16:05
+
+Player: BOT12
+Score: 90
+Date and Time: 2025-04-07 18:20:31
+
