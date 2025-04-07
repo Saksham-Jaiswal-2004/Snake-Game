@@ -48,10 +48,33 @@ int getch(void) {
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);    // restore terminal
     return ch;
 }
+
+void wait(void){
+    struct termios oldt, newt;
+    fflush(stdout);  // Make sure the message is printed immediately
+
+    // Get current terminal settings
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+
+    // Disable canonical mode and echo
+    newt.c_lflag &= ~(ICANON | ECHO);
+
+    // Apply new settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    // Wait for any key
+    getchar();
+
+    // Restore original terminal settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+    printf("\n");
+}
 #endif
 
 #define WIDTH 50
-#define HEIGHT 30
+#define HEIGHT 20
 #define GAME_DATA_FILE "game_data.txt"
 #define HIGH_SCORE_FILE "highscore.txt"
 #define FOOD_SOUND "assets/food.wav"
@@ -94,11 +117,32 @@ void clearScreen() {
 #endif
 }
 
-void centerPrint(const char* msg) {
-    int padding = (WIDTH - (int)strlen(msg)) / 2 + 1;
-    for (int i = 0; i < padding; i++) printf(" ");
-    printf("%s\n", msg);
+void hideCursor() {
+    #ifdef _WIN32
+        HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+        CONSOLE_CURSOR_INFO cursorInfo;
+        GetConsoleCursorInfo(out, &cursorInfo);
+        cursorInfo.bVisible = FALSE;
+        SetConsoleCursorInfo(out, &cursorInfo);
+    #else
+        printf("\e[?25l");
+        fflush(stdout);
+    #endif
+    }
+    
+void showCursor() {
+    #ifdef _WIN32
+        HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+        CONSOLE_CURSOR_INFO cursorInfo;
+        GetConsoleCursorInfo(out, &cursorInfo);
+        cursorInfo.bVisible = TRUE;
+        SetConsoleCursorInfo(out, &cursorInfo);
+    #else
+        printf("\e[?25h");
+        fflush(stdout);
+    #endif
 }
+    
 
 void loader(const char* msg) {
     clearScreen();
@@ -193,13 +237,20 @@ void saveGameData() {
 }
 
 void showHighScore() {
+    clearScreen();
     loadHighScore();
     printf(GREEN "\nHigh Score: %d\n" RESET, highScore);
     printf("\nPress any key to go back to menu...");
+    #ifdef _WIN32
     getch();
+    #else
+    wait();
+    getch();
+    #endif
 }
 
 void showPastScores() {
+    clearScreen();
     FILE *file = fopen(GAME_DATA_FILE, "r");
     if (file) {
         char ch;
@@ -209,7 +260,12 @@ void showPastScores() {
         printf(RED "\nNo past scores found.\n" RESET);
     }
     printf("\nPress any key to go back to menu...");
+    #ifdef _WIN32
     getch();
+    #else
+    wait();
+    getch();
+    #endif
 }
 
 void draw() {
@@ -334,6 +390,18 @@ void moveSnake() {
         score -= 10;
         poisonX = poisonY = -1;
         playSound(POISON_SOUND);
+        // REMOVE tail twice (shrink length by 2 if possible)
+        for (int i = 0; i < 2 && head != tail; i++) {
+            Node* temp = head;
+            while (temp->next->next) temp = temp->next;
+            free(temp->next);
+            temp->next = NULL;
+            tail = temp;
+        }
+        // Optional: if snake too short, end game
+        if (head == tail) {
+            gameOver = 1;
+        }
     } else if (newX == goldenFoodX && newY == goldenFoodY) {
         score += 30;
         goldenFoodX = goldenFoodY = -1;
@@ -361,6 +429,7 @@ void gameLoop() {
     loader("Loading Game...");
     playSound(GAME_SOUND);
     clearScreen();
+    hideCursor();
 
     generateFood();
     generateObstacles();
@@ -379,6 +448,7 @@ void gameLoop() {
     playSound(GAME_OVER_SOUND);
     printf(RED "\nGame Over! Your final score: %d\n" RESET, score);
     freeSnake();
+    showCursor();
     printf("Press any key to return to menu...");
     getch();
 }
