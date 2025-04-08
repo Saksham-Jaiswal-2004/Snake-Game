@@ -521,7 +521,6 @@ void moveSnake()
         score -= 10;
         poisonX = poisonY = -1;
         playSound(POISON_SOUND);
-        // REMOVE tail twice (shrink length by 2 if possible)
         for (int i = 0; i < 2 && head != tail; i++)
         {
             Node *temp = head;
@@ -531,7 +530,7 @@ void moveSnake()
             temp->next = NULL;
             tail = temp;
         }
-        // Optional: if snake too short, end game
+        //if snake too short, end game
         if (head == tail)
         {
             gameOver = 1;
