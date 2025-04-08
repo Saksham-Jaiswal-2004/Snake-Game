@@ -18,3 +18,7 @@ Player: Play
 Score: 240
 Date and Time: 2025-04-08 01:19:17
 
+Player: test
+Score: 60
+Date and Time: 2025-04-08 12:19:07
+
